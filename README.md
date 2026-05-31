@@ -133,7 +133,25 @@ python scripts/check_encoding_hygiene.py
 ## 개발 로드맵
 
 - [x] Phase 1 — 백엔드 코어 (FastAPI + Supabase + Qdrant + Neo4j)
-- [ ] Phase 2 — AI Agent (LangGraph + RAG + 일정 툴)
-- [ ] Phase 3 — 실시간 동기화 (Supabase Realtime + WebSocket)
-- [ ] Phase 4 — 웹 UI (Next.js + shadcn/ui)
-- [ ] Phase 5 — 모바일 앱 (Flutter)
+- [x] Phase 2 — AI Agent (LangGraph + RAG + 일정 툴)
+- [x] Phase 3 — 실시간 동기화 (Supabase Realtime + WebSocket)
+- [x] Phase 4 — 웹 UI (Next.js + shadcn/ui)
+- [x] Phase 5 — 모바일 앱 (Flutter)
+
+## 모바일 앱 (Flutter)
+
+```powershell
+cd mobile
+
+# 웹으로 실행 (가장 빠름, Android SDK 불필요)
+flutter run -d chrome
+
+# Windows 데스크탑 앱으로 실행
+flutter run -d windows
+
+# Android 실기기/에뮬레이터 (Android Studio 설치 후)
+# 에뮬레이터는 호스트를 10.0.2.2 로 접근하므로 API_BASE 지정
+flutter run --dart-define=API_BASE=http://10.0.2.2:8001
+```
+
+Flutter SDK는 `C:\dev\flutter` 에 설치되어 있다 (PATH 등록됨).
