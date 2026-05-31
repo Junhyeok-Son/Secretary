@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     APP_NAME: str = "Secretary AI"
     DEBUG: bool = False
 
+    # Auth — 단일 사용자용 비밀 키
+    APP_SECRET: str = "change-me"
+
     # Supabase
     SUPABASE_URL: str
     SUPABASE_ANON_KEY: str

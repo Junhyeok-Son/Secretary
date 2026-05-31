@@ -3,10 +3,13 @@ from supabase import Client
 from app.db.supabase import get_supabase
 from app.db.qdrant import get_qdrant
 from app.services.llm import get_embeddings
+from app.services.graph import extract_graph, save_to_graph
 from app.models.schemas import KnowledgeCreate, KnowledgeResponse
 from qdrant_client.models import PointStruct
 import uuid
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
 
@@ -15,8 +18,9 @@ async def add_knowledge(payload: KnowledgeCreate, db: Client = Depends(get_supab
     # 1. Supabase에 원문 저장
     result = db.table("knowledge").insert(payload.model_dump()).execute()
     record = result.data[0]
+    kid = record["id"]
 
-    # 2. 임베딩 생성 후 Qdrant에 벡터 저장
+    # 2. Qdrant 벡터 저장
     embeddings = get_embeddings()
     vector = embeddings.embed_query(payload.content)
     qdrant = get_qdrant()
@@ -26,10 +30,17 @@ async def add_knowledge(payload: KnowledgeCreate, db: Client = Depends(get_supab
             PointStruct(
                 id=str(uuid.uuid4()),
                 vector=vector,
-                payload={"knowledge_id": record["id"], "content": payload.content, "tags": payload.tags},
+                payload={"knowledge_id": kid, "content": payload.content, "tags": payload.tags},
             )
         ],
     )
+
+    # 3. Neo4j 그래프 저장 (엔티티·관계 추출)
+    try:
+        graph_data = extract_graph(payload.content)
+        save_to_graph(kid, payload.content, graph_data)
+    except Exception as e:
+        logger.warning("Neo4j graph save failed (non-fatal): %s", e)
 
     return record
 

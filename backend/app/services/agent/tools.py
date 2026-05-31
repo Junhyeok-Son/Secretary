@@ -3,6 +3,7 @@ from datetime import datetime
 from app.db.supabase import get_supabase
 from app.db.qdrant import get_qdrant
 from app.services.llm import get_embeddings
+from app.services.graph import search_graph as _search_graph
 
 DEV_USER_ID = "00000000-0000-0000-0000-000000000001"
 
@@ -50,7 +51,7 @@ def create_event(title: str, start_at: str, end_at: str, description: str = "", 
 
 @tool
 def search_knowledge(query: str, limit: int = 4) -> str:
-    """사용자의 지식 베이스에서 쿼리와 가장 관련된 내용을 검색한다."""
+    """사용자의 지식 베이스에서 쿼리와 가장 관련된 내용을 벡터 검색으로 찾는다."""
     embeddings = get_embeddings()
     vector = embeddings.embed_query(query)
     qdrant = get_qdrant()
@@ -67,9 +68,18 @@ def search_knowledge(query: str, limit: int = 4) -> str:
 
 
 @tool
+def search_knowledge_graph(query: str) -> str:
+    """지식 그래프에서 쿼리 키워드와 연결된 엔티티·관계를 탐색한다. 개념 간 연결이나 맥락 파악에 유용하다."""
+    results = _search_graph(query)
+    if not results:
+        return "그래프에서 관련 지식을 찾지 못했습니다."
+    return "\n\n".join(f"[그래프] {r}" for r in results)
+
+
+@tool
 def get_current_time() -> str:
     """현재 날짜와 시간을 반환한다."""
     return datetime.now().strftime("%Y년 %m월 %d일 %H:%M (%A)")
 
 
-TOOLS = [get_events, create_event, search_knowledge, get_current_time]
+TOOLS = [get_events, create_event, search_knowledge, search_knowledge_graph, get_current_time]

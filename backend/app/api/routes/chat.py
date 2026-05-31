@@ -1,10 +1,11 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, status
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import HumanMessage, AIMessageChunk, AIMessage
 from app.models.schemas import ChatRequest
 from app.services.agent.graph import get_agent
 from app.services.agent.memory import get_history, append_message, clear_history
 from app.services.realtime import manager
+from app.core.config import settings
 import uuid
 import json
 
@@ -53,7 +54,7 @@ async def chat_sse(req: ChatRequest):
 # ── WebSocket 채팅 엔드포인트 (앱/웹 실시간용) ──────────────────────────────
 
 @router.websocket("/ws/{session_id}")
-async def chat_ws(ws: WebSocket, session_id: str):
+async def chat_ws(ws: WebSocket, session_id: str, secret: str = Query(default="")):
     """
     WebSocket 채팅. 메시지 형식:
       송신: {"message": "사용자 입력"}
@@ -61,6 +62,10 @@ async def chat_ws(ws: WebSocket, session_id: str):
             {"type": "chat_done",  "data": {"session_id": "..."}}
             {"type": "error",      "data": {"message": "..."}}
     """
+    if secret != settings.APP_SECRET:
+        await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
     await manager.connect(session_id, ws)
     try:
         while True:
