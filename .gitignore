@@ -23,6 +23,11 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local
+
 # 빌드
 dist/
 build/
