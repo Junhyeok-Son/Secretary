@@ -1,5 +1,6 @@
 from langchain_core.tools import tool
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import time as _time
 from app.db.supabase import get_supabase
 from app.db.qdrant import get_qdrant
 from app.services.llm import get_embeddings
@@ -30,6 +31,16 @@ def get_events(start_date: str = "", end_date: str = "") -> str:
     return "\n".join(lines)
 
 
+def _with_local_tz(dt_str: str) -> str:
+    """타임존 정보 없는 datetime 문자열에 로컬 UTC 오프셋을 추가한다."""
+    if "+" in dt_str[10:] or dt_str.endswith("Z"):
+        return dt_str  # 이미 타임존 있음
+    offset_sec = -_time.timezone if _time.daylight == 0 else -_time.altzone
+    sign = "+" if offset_sec >= 0 else "-"
+    h, m = divmod(abs(offset_sec) // 60, 60)
+    return f"{dt_str}{sign}{h:02d}:{m:02d}"
+
+
 @tool
 def create_event(title: str, start_at: str, end_at: str, description: str = "", location: str = "") -> str:
     """새 일정을 생성한다. start_at, end_at은 ISO 8601 형식(예: 2026-06-01T14:00:00)."""
@@ -37,8 +48,8 @@ def create_event(title: str, start_at: str, end_at: str, description: str = "", 
     payload = {
         "user_id": DEV_USER_ID,
         "title": title,
-        "start_at": start_at,
-        "end_at": end_at,
+        "start_at": _with_local_tz(start_at),
+        "end_at": _with_local_tz(end_at),
         "description": description or None,
         "location": location or None,
         "status": "confirmed",
