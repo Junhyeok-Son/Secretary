@@ -1,0 +1,28 @@
+# 비밀 키
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# 하네스 참고 자료 (읽기 전용, 커밋 불필요)
+harness-starter-kit/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# 빌드
+dist/
+build/
