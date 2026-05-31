@@ -12,6 +12,7 @@ def get_qdrant() -> QdrantClient:
         _client = QdrantClient(
             host=settings.QDRANT_HOST,
             port=settings.QDRANT_PORT,
+            check_compatibility=False,
         )
     return _client
 

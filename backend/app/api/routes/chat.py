@@ -1,43 +1,55 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
+from langchain_core.messages import HumanMessage, AIMessageChunk
 from app.models.schemas import ChatRequest
-from app.services.llm import get_llm, get_embeddings
-from app.db.qdrant import get_qdrant
+from app.services.agent.graph import get_agent
+from app.services.agent.memory import get_history, append_message
 import uuid
 import json
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-def _retrieve_context(query: str, limit: int = 4) -> list[str]:
-    embeddings = get_embeddings()
-    vector = embeddings.embed_query(query)
-    qdrant = get_qdrant()
-    results = qdrant.search(collection_name="knowledge", query_vector=vector, limit=limit)
-    return [r.payload.get("content", "") for r in results if r.score > 0.6]
-
-
 @router.post("/")
 async def chat(req: ChatRequest):
     session_id = req.session_id or str(uuid.uuid4())
-    context_chunks = _retrieve_context(req.message)
+    user_message = HumanMessage(content=req.message)
 
-    context_block = "\n\n".join(context_chunks) if context_chunks else "없음"
-    system_prompt = (
-        "당신은 사용자의 개인 비서입니다. "
-        "아래 지식 베이스를 참고하여 정확하고 간결하게 답변하세요.\n\n"
-        f"[지식 베이스]\n{context_block}"
-    )
+    history = get_history(session_id)
+    messages = history + [user_message]
 
-    llm = get_llm()
-    messages = [
-        ("system", system_prompt),
-        ("human", req.message),
-    ]
+    agent = get_agent()
 
     async def generate():
-        async for chunk in llm.astream(messages):
-            yield f"data: {json.dumps({'delta': chunk.content, 'session_id': session_id})}\n\n"
+        full_response = ""
+        try:
+            async for event in agent.astream_events(
+                {"messages": messages},
+                version="v2",
+            ):
+                kind = event.get("event")
+                if kind == "on_chat_model_stream":
+                    chunk = event["data"].get("chunk")
+                    if isinstance(chunk, AIMessageChunk) and chunk.content:
+                        full_response += chunk.content
+                        payload = json.dumps({"delta": chunk.content, "session_id": session_id}, ensure_ascii=False)
+                        yield f"data: {payload}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            return
+
+        # 대화 히스토리 저장
+        append_message(session_id, user_message)
+        from langchain_core.messages import AIMessage
+        append_message(session_id, AIMessage(content=full_response))
+
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@router.delete("/{session_id}")
+async def clear_session(session_id: str):
+    from app.services.agent.memory import clear_history
+    clear_history(session_id)
+    return {"status": "cleared"}
