@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "llama3.1"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     GROQ_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
 
