@@ -1,5 +1,5 @@
 from langchain_core.tools import tool
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.db.supabase import get_supabase
 from app.db.qdrant import get_qdrant
 from app.services.llm import get_embeddings
@@ -76,10 +76,20 @@ def search_knowledge_graph(query: str) -> str:
     return "\n\n".join(f"[그래프] {r}" for r in results)
 
 
+_KO_WEEKDAY = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
+
+
 @tool
 def get_current_time() -> str:
-    """현재 날짜와 시간을 반환한다."""
-    return datetime.now().strftime("%Y년 %m월 %d일 %H:%M (%A)")
+    """현재 날짜와 시간을 반환한다. 날짜·일정 계산 전에 반드시 먼저 호출해야 한다."""
+    now = datetime.now()
+    tomorrow = now + timedelta(days=1)
+    return (
+        f"현재 날짜: {now.year}년 {now.month}월 {now.day}일 ({_KO_WEEKDAY[now.weekday()]})\n"
+        f"현재 시각: {now.strftime('%H:%M')}\n"
+        f"내일: {tomorrow.year}년 {tomorrow.month}월 {tomorrow.day}일 ({_KO_WEEKDAY[tomorrow.weekday()]})\n"
+        f"내일 ISO 날짜: {tomorrow.strftime('%Y-%m-%d')}"
+    )
 
 
 TOOLS = [get_events, create_event, search_knowledge, search_knowledge_graph, get_current_time]
