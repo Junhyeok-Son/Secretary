@@ -39,9 +39,9 @@ async def search_knowledge(q: str, limit: int = 5):
     embeddings = get_embeddings()
     vector = embeddings.embed_query(q)
     qdrant = get_qdrant()
-    results = qdrant.search(
+    results = qdrant.query_points(
         collection_name="knowledge",
-        query_vector=vector,
-        limit=limit,
-    )
+        query=vector,
+        limit=max(1, limit),
+    ).points
     return [{"score": r.score, **r.payload} for r in results]

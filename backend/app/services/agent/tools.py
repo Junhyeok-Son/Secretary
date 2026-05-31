@@ -54,11 +54,11 @@ def search_knowledge(query: str, limit: int = 4) -> str:
     embeddings = get_embeddings()
     vector = embeddings.embed_query(query)
     qdrant = get_qdrant()
-    results = qdrant.search(
+    results = qdrant.query_points(
         collection_name="knowledge",
-        query_vector=vector,
-        limit=limit,
-    )
+        query=vector,
+        limit=max(1, limit),
+    ).points
     relevant = [r for r in results if r.score > 0.55]
     if not relevant:
         return "관련 지식을 찾지 못했습니다."
