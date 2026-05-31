@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { addKnowledge } from "@/lib/api";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Brain, Plus } from "lucide-react";
+import { Database } from "lucide-react";
 
 export function KnowledgePanel() {
   const [content, setContent] = useState("");
@@ -25,24 +23,53 @@ export function KnowledgePanel() {
   };
 
   return (
-    <div className="flex flex-col h-full px-6 py-6 gap-4">
+    <div className="flex flex-col h-full px-6 py-5 gap-4">
+      {/* 헤더 */}
       <div className="flex items-center gap-2">
-        <Brain className="h-5 w-5 text-primary" />
-        <h2 className="font-semibold">지식 베이스</h2>
+        <Database className="h-4 w-4 text-cyan-400" />
+        <span className="text-xs tracking-[0.2em] text-cyan-400 uppercase font-medium">Knowledge Matrix</span>
       </div>
-      <p className="text-sm text-muted-foreground">
-        기억시키고 싶은 내용을 입력하면 AI가 대화 중 참고합니다.
+
+      <p className="text-[11px] text-cyan-400/30 leading-relaxed">
+        // 기억시킬 정보를 입력하세요.<br />
+        // AI가 대화 중 지식 그래프에서 참조합니다.
       </p>
-      <Textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="예: 나는 매주 월요일 오전 9시에 팀 스탠드업을 한다."
-        className="flex-1 resize-none text-sm min-h-[200px]"
-      />
-      <Button onClick={handleSave} disabled={saving || !content.trim()} className="w-full gap-2">
-        <Plus className="h-4 w-4" />
-        {saved ? "저장됨!" : saving ? "저장 중..." : "지식 저장"}
-      </Button>
+
+      {/* 텍스트 입력 */}
+      <div className="flex-1 relative neon-border rounded overflow-hidden">
+        <div className="absolute top-2 left-3 text-[10px] text-cyan-400/30 tracking-widest pointer-events-none">
+          // INPUT DATA
+        </div>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="예: 나는 매주 월요일 오전 9시에 팀 스탠드업을 한다."
+          className="w-full h-full bg-transparent text-sm text-cyan-100/80 placeholder-cyan-900 outline-none resize-none p-3 pt-7 font-mono leading-relaxed"
+        />
+        {content && (
+          <div className="absolute bottom-2 right-3 text-[10px] text-cyan-400/20">
+            {content.length} CHARS
+          </div>
+        )}
+      </div>
+
+      {/* 저장 버튼 */}
+      <button
+        onClick={handleSave}
+        disabled={saving || !content.trim()}
+        className={cn(
+          "w-full py-3 rounded text-sm font-bold tracking-[0.2em] uppercase transition-all",
+          saved
+            ? "border border-green-400/50 text-green-400 bg-green-400/10 shadow-[0_0_15px_rgba(0,255,136,0.2)]"
+            : "neon-glow-btn"
+        )}
+      >
+        {saved ? "// DATA STORED ✓" : saving ? "// PROCESSING..." : "// UPLOAD TO MATRIX"}
+      </button>
     </div>
   );
+}
+
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(" ");
 }

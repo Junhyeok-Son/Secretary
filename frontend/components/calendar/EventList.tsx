@@ -1,10 +1,8 @@
 "use client";
 
 import { useEvents } from "@/hooks/useEvents";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, RefreshCw, CalendarDays } from "lucide-react";
+import { Trash2, RefreshCw, Zap } from "lucide-react";
 import { format, isToday, isTomorrow, isPast } from "date-fns";
 import { ko } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -12,12 +10,8 @@ import { cn } from "@/lib/utils";
 function formatEventDate(start: string, end: string) {
   const s = new Date(start);
   const e = new Date(end);
-  const dateStr = isToday(s)
-    ? "오늘"
-    : isTomorrow(s)
-    ? "내일"
-    : format(s, "M월 d일 (EEE)", { locale: ko });
-  const timeStr = `${format(s, "HH:mm")} ~ ${format(e, "HH:mm")}`;
+  const dateStr = isToday(s) ? "TODAY" : isTomorrow(s) ? "TOMORROW" : format(s, "MM.dd EEE", { locale: ko }).toUpperCase();
+  const timeStr = `${format(s, "HH:mm")} — ${format(e, "HH:mm")}`;
   return { dateStr, timeStr };
 }
 
@@ -26,56 +20,92 @@ export function EventList({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <h2 className="font-semibold text-sm flex items-center gap-2">
-          <CalendarDays className="h-4 w-4" />
-          다가오는 일정
-        </h2>
-        <Button variant="ghost" size="icon" onClick={reload} disabled={loading}>
-          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-        </Button>
+      {/* 헤더 */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-cyan-400/10">
+        <div className="flex items-center gap-2">
+          <Zap className="h-3.5 w-3.5 text-cyan-400" />
+          <span className="text-xs tracking-[0.2em] text-cyan-400 uppercase font-medium">Schedule Matrix</span>
+        </div>
+        <button
+          onClick={reload}
+          disabled={loading}
+          className="w-7 h-7 rounded border border-cyan-400/20 flex items-center justify-center text-cyan-400/50 hover:text-cyan-400 hover:border-cyan-400/40 transition-colors"
+        >
+          <RefreshCw className={cn("h-3 w-3", loading && "animate-spin")} />
+        </button>
       </div>
 
       <ScrollArea className="flex-1">
         {events.length === 0 && !loading && (
-          <div className="flex flex-col items-center justify-center h-40 text-muted-foreground text-sm">
-            등록된 일정이 없어요
+          <div className="flex flex-col items-center justify-center h-48 gap-2">
+            <p className="text-xs text-cyan-400/30 tracking-widest">// NO SCHEDULED EVENTS</p>
+            <p className="text-[10px] text-cyan-400/15">AI에게 일정 추가를 요청하세요</p>
           </div>
         )}
-        <div className="flex flex-col divide-y">
-          {events.map((ev) => {
+
+        <div className="flex flex-col gap-0 px-3 py-2">
+          {events.map((ev, i) => {
             const { dateStr, timeStr } = formatEventDate(ev.start_at, ev.end_at);
             const past = isPast(new Date(ev.end_at));
+            const today = isToday(new Date(ev.start_at));
+            const tomorrow = isTomorrow(new Date(ev.start_at));
+
             return (
               <div
                 key={ev.id}
                 className={cn(
-                  "flex items-start gap-3 px-4 py-3 group hover:bg-muted/50 transition-colors",
-                  past && "opacity-50",
+                  "group relative flex items-center gap-3 px-3 py-3 rounded border-l-2 mb-2 transition-all",
+                  past
+                    ? "border-l-cyan-900/50 bg-transparent opacity-30"
+                    : today
+                    ? "border-l-cyan-400 bg-cyan-400/5 shadow-[inset_0_0_20px_rgba(0,212,255,0.03)]"
+                    : tomorrow
+                    ? "border-l-purple-400 bg-purple-400/5"
+                    : "border-l-cyan-400/20 bg-transparent hover:bg-cyan-400/3"
                 )}
               >
+                {/* 왼쪽 시간 블록 */}
+                <div className="flex-shrink-0 w-16 text-right">
+                  <p className={cn(
+                    "text-[10px] font-bold tracking-wider",
+                    today ? "text-cyan-400" : tomorrow ? "text-purple-400" : "text-cyan-400/40"
+                  )}>
+                    {dateStr}
+                  </p>
+                  <p className="text-[10px] text-cyan-400/30 mt-0.5">{timeStr}</p>
+                </div>
+
+                {/* 구분선 */}
+                <div className={cn(
+                  "w-px h-8 flex-shrink-0",
+                  today ? "bg-cyan-400/40" : tomorrow ? "bg-purple-400/40" : "bg-cyan-400/10"
+                )} />
+
+                {/* 이벤트 정보 */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{ev.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {dateStr} · {timeStr}
+                  <p className={cn(
+                    "text-sm font-medium truncate",
+                    today ? "text-cyan-100" : "text-cyan-200/70"
+                  )}>
+                    {ev.title}
                   </p>
                   {ev.location && (
-                    <p className="text-xs text-muted-foreground truncate">{ev.location}</p>
+                    <p className="text-[10px] text-cyan-400/30 truncate mt-0.5">{ev.location}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {isToday(new Date(ev.start_at)) && (
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">오늘</Badge>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                    onClick={() => remove(ev.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+
+                {/* 삭제 버튼 */}
+                <button
+                  onClick={() => remove(ev.id)}
+                  className="flex-shrink-0 w-6 h-6 rounded border border-red-400/0 flex items-center justify-center text-red-400/0 group-hover:border-red-400/30 group-hover:text-red-400/50 hover:!text-red-400 hover:!border-red-400/60 transition-all"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+
+                {/* TODAY 뱃지 */}
+                {today && (
+                  <span className="absolute top-1 right-8 text-[8px] text-cyan-400 tracking-widest opacity-60">LIVE</span>
+                )}
               </div>
             );
           })}
