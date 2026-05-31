@@ -5,13 +5,16 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.db.qdrant import ensure_collection
 from app.db.neo4j import close_driver
-from app.api.routes import events, knowledge, chat
+from app.api.routes import events, knowledge, chat, ws
+from app.services.realtime import start_realtime_listener
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ensure_collection()
+    realtime_task = start_realtime_listener()
     yield
+    realtime_task.cancel()
     close_driver()
 
 
@@ -28,6 +31,7 @@ app.add_middleware(
 app.include_router(events.router, prefix="/api/v1")
 app.include_router(knowledge.router, prefix="/api/v1")
 app.include_router(chat.router, prefix="/api/v1")
+app.include_router(ws.router)
 
 
 @app.get("/health")
