@@ -42,7 +42,7 @@ class EventUpdate(BaseModel):
 
 class EventResponse(EventCreate):
     id: UUID4
-    user_id: UUID4
+    user_id: str
     created_at: datetime
     updated_at: datetime
 
@@ -57,7 +57,7 @@ class KnowledgeCreate(BaseModel):
 
 class KnowledgeResponse(KnowledgeCreate):
     id: UUID4
-    user_id: UUID4
+    user_id: str
     created_at: datetime
 
 
